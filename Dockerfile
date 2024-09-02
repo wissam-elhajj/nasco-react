@@ -1,31 +1,20 @@
-# nodejs build stage
-#---------------------------------
-FROM node:16 as build-stage
+# Use an official Node.js runtime as a parent image
+FROM node:14
 
-WORKDIR /app
+# Set the working directory in the container
+WORKDIR /usr/src/app
 
-COPY package*.json /app/
+# Copy package.json and package-lock.json to the working directory
+COPY package*.json ./
 
-RUN yarn install
+# Install dependencies
+RUN npm install
 
-COPY ./ /app/
+# Copy the rest of the application code to the working directory
+COPY . .
 
-RUN yarn build
+# Expose port 3000 to the outside world
+EXPOSE 3000
 
-# nginx stage
-#---------------------------------
-FROM nginx:1.15
-
-# support running as arbitrary user which belogs to the root group
-RUN chmod g+rwx /var/cache/nginx /var/run /var/log/nginx
-
-# users are not allowed to listen on priviliged ports
-RUN sed -i.bak 's/listen\(.*\)80;/listen 8081;/' /etc/nginx/conf.d/default.conf
-EXPOSE 8081
-
-# comment user directive as master process is run as user in OpenShift anyhow
-RUN sed -i.bak 's/^user/#user/' /etc/nginx/nginx.conf
-
-COPY --from=build-stage /app/build/ /usr/share/nginx/html
-
-COPY --from=build-stage /app/nginx.conf /etc/nginx/conf.d/default.conf
+# Define the command to run the application
+CMD [ "npm", "start" ]
